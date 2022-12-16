@@ -14,12 +14,14 @@ assets.bg = love.graphics.newImage("bg.png")
 assets.intro = love.graphics.newImage("intro.png")
 assets.help = love.graphics.newImage("help.png")
 assets.help2 = love.graphics.newImage("help2.png")
+assets.help3 = love.graphics.newImage("help3.png")
 assets.treasure = love.graphics.newImage("treasure.png")
 assets.explosion = love.graphics.newImage("explosion.png")
 assets.p1win = love.graphics.newImage("p1win.png")
 assets.p2win = love.graphics.newImage("p2win.png")
 assets.continue = love.graphics.newImage("continue.png")
 assets.title = love.graphics.newImage("title.png")
+assets.countdown = love.graphics.newImage("countdown.png")
 
 assets.music = love.audio.newSource("fishnchips.wav", "stream")
 assets.fire = love.audio.newSource("landing.ogg", "static")
@@ -29,6 +31,10 @@ state = 0
 
 love.graphics.setDefaultFilter("nearest", "nearest", 1)
 push:setupScreen(320, 180, 1280, 720, {fullscreen = false, pixelperfect = true})
+
+function startGame()
+	state = 3
+end
 
 function initAnims()
 	p1.anim.img, p2.anim.img = love.graphics.newImage("player1.png"), love.graphics.newImage("player2.png")
@@ -49,13 +55,16 @@ function initAnims()
 
 	local g3 = anim8.newGrid(32, 32, assets.explosion:getWidth(), assets.explosion:getHeight())
 	assets.explosionAnim = anim8.newAnimation(g3("1-7", 1), 0.08, "pauseAtEnd")
+
+	local g4 = anim8.newGrid(16, 16, 48, 16)
+	assets.countdownAnim = anim8.newAnimation(g4("1-3", 1), 1, startGame)
 end
 
 function initControls()
 	p1.input = baton.new {controls = {
 		left = {"key:a"},
 		right = {"key:d"},
-		fire = {"key:w"},
+		fire = {"key:s"},
 		menu = {"key:space"},
 		fullscreen = {"key:f"},
 		exit = {"key:escape"},
@@ -65,15 +74,15 @@ function initControls()
 	p2.input = baton.new {controls = {
 		left = {"key:left"},
 		right = {"key:right"},
-		fire = {"key:up"}
+		fire = {"key:down"}
 	}}
 end
 
 
 function love.load()
 
-	p1 = {anim = {current = nil}, x = 15, dir = 1, isMoving = false, bullets = {}, cooldown = 2, hit = false}
-	p2 = {anim = {current = nil}, x = 255, dir = 0, isMoving = false, bullets = {}, cooldown = 2, hit = false}
+	p1 = {anim = {current = nil}, x = 37, dir = 1, isMoving = false, bullets = {}, cooldown = 2, hit = false}
+	p2 = {anim = {current = nil}, x = 235, dir = 0, isMoving = false, bullets = {}, cooldown = 2, hit = false}
 	state = 0
 
 	assets.fire:setVolume(0.45)
@@ -92,7 +101,11 @@ function love.update(dt)
 	p1.input:update()
 	p2.input:update()
 	if state == 0 then --main menu
-		if p1.input:pressed("menu") then state = 3 end
+		if p1.input:pressed("menu") then
+			state = 8
+			p2.anim.current = p2.anim.idlel
+			p1.anim.current = p1.anim.idler
+		end
 		if p1.input:pressed("help") then state = 2 end
 	elseif state == 1 then --game
 		gameUpdate(dt)
@@ -143,6 +156,11 @@ function love.update(dt)
 		p2.anim.current:update(dt)
 		assets.explosionAnim:update(dt)
 		if p1.input:released("menu") then love.load() end
+	elseif state == 8 then
+		p1.anim.current = p1.anim.idler
+		p1.anim.current:update(dt)
+		p2.anim.current:update(dt)
+		assets.countdownAnim:update(dt)
 	end
 
 	if p1.input:pressed("fullscreen") then push:switchFullscreen(1280, 720) end
@@ -169,11 +187,14 @@ function love.draw()
 	elseif state == 6 then
 		gameDraw()
 		love.graphics.draw(assets.p1win, 110, 30)
-		love.graphics.draw(assets.continue, 98, 120)
+		love.graphics.draw(assets.continue, 98, 90)
 	elseif state == 7 then
 		gameDraw()
 		love.graphics.draw(assets.p2win, 110, 30)
 		love.graphics.draw(assets.continue, 98, 120)
+	elseif state == 8 then
+		gameDraw()
+		assets.countdownAnim:draw(assets.countdown, 150, 100)
 	end
 	push:finish()
 end
@@ -312,6 +333,11 @@ function gameDraw()
 				assets.explosionAnim:draw(assets.explosion, 290, 120)
 				love.graphics.draw(assets.treasure, -10, 124)
 			end
+		end
+		if state == 8 then
+			love.graphics.draw(assets.treasure, -10, 124)
+			love.graphics.draw(assets.treasure, 330, 124, 0, -1, 1)
+			love.graphics.draw(assets.help3, 0, 0)
 		end
 	end
 
